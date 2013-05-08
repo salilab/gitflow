@@ -322,6 +322,7 @@ cmd_finish() {
         if ! git_do commit  -m "remove README.md" --no-verify -- README.md; then
                 warn "Failed to remove README.md"
 		exit 1
+        fi
 	git_do checkout "$DEVELOP_BRANCH"
         if ! git_do merge --squash "$BRANCH" -m "$message"; then
                 warn "Failed to merge in to develop."

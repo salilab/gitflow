@@ -37,7 +37,7 @@
 #
 
 usage() {
-	echo "usage: git imp init [-fd]"
+	echo "usage: git imp init [-f]"
 }
 
 parse_args() {
@@ -158,11 +158,7 @@ cmd_default() {
 		fi
 
 		printf "Branch name for \"next release\" development: [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		develop_branch=${answer:-$default_suggestion}
 
 		if [ "$master_branch" = "$develop_branch" ]; then
@@ -236,11 +232,7 @@ cmd_default() {
 	if ! git config --get gitimp.prefix.feature >/dev/null 2>&1 || flag force; then
 		default_suggestion=$(git config --get gitimp.prefix.feature || echo feature/)
 		printf "Feature branches? [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
 		git_do config gitimp.prefix.feature "$prefix"
 	fi
@@ -249,11 +241,7 @@ cmd_default() {
 	if ! git config --get gitimp.prefix.release >/dev/null 2>&1 || flag force; then
 		default_suggestion=$(git config --get gitimp.prefix.release || echo release/)
 		printf "Release branches? [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
 		git_do config gitimp.prefix.release "$prefix"
 	fi
@@ -263,11 +251,7 @@ cmd_default() {
 	if ! git config --get gitimp.prefix.hotfix >/dev/null 2>&1 || flag force; then
 		default_suggestion=$(git config --get gitimp.prefix.hotfix || echo hotfix/)
 		printf "Hotfix branches? [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
 		git_do config gitimp.prefix.hotfix "$prefix"
 	fi
@@ -277,11 +261,7 @@ cmd_default() {
 	if ! git config --get gitimp.prefix.support >/dev/null 2>&1 || flag force; then
 		default_suggestion=$(git config --get gitimp.prefix.support || echo support/)
 		printf "Support branches? [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
 		git_do config gitimp.prefix.support "$prefix"
 	fi
@@ -291,11 +271,7 @@ cmd_default() {
 	if ! git config --get gitimp.prefix.versiontag >/dev/null 2>&1 || flag force; then
 		default_suggestion=$(git config --get gitimp.prefix.versiontag || echo "")
 		printf "Version tag prefix? [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+		printf "\n"
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
 		git_do config gitimp.prefix.versiontag "$prefix"
 	fi
