@@ -1,5 +1,5 @@
 #
-# git-flow -- A collection of Git extensions to provide high-level
+# git-imp -- A collection of Git extensions to provide high-level
 # repository operations for Vincent Driessen's branching model.
 #
 # Original blog post presenting this model is found at:
@@ -38,21 +38,21 @@
 
 init() {
   require_git_repo
-  require_gitflow_initialized
-  gitflow_load_settings
-  PREFIX=$(git config --get gitflow.prefix.feature)
+  require_gitimp_initialized
+  gitimp_load_settings
+  PREFIX=$(git config --get gitimp.prefix.feature)
 }
 
 usage() {
-	echo "usage: git flow feature [list] [-v]"
-	echo "       git flow feature start [-F] <name> [<base>]"
-	echo "       git flow feature finish [-rFkDS] [<name|nameprefix>]"
-	echo "       git flow feature publish <name>"
-	echo "       git flow feature track <name>"
-	echo "       git flow feature diff [<name|nameprefix>]"
-	echo "       git flow feature rebase [-i] [<name|nameprefix>]"
-	echo "       git flow feature checkout [<name|nameprefix>]"
-	echo "       git flow feature pull [-r] <remote> [<name>]"
+	echo "usage: git imp feature [list] [-v]"
+	echo "       git imp feature start [-F] <name> [<base>]"
+	echo "       git imp feature finish [-rFkDS] [<name|nameprefix>]"
+	echo "       git imp feature publish <name>"
+	echo "       git imp feature track <name>"
+	echo "       git imp feature diff [<name|nameprefix>]"
+	echo "       git imp feature rebase [-i] [<name|nameprefix>]"
+	echo "       git imp feature checkout [<name|nameprefix>]"
+	echo "       git imp feature pull [-r] <remote> [<name>]"
 }
 
 cmd_default() {
@@ -72,7 +72,7 @@ cmd_list() {
 		warn ""
 		warn "You can start a new feature branch:"
 		warn ""
-		warn "    git flow feature start <name> [<base>]"
+		warn "    git imp feature start <name> [<base>]"
 		warn ""
 		exit 0
 	fi
@@ -135,7 +135,7 @@ expand_nameprefix_arg() {
 
 	local expanded_name
 	local exitcode
-	expanded_name=$(gitflow_resolve_nameprefix "$NAME" "$PREFIX")
+	expanded_name=$(gitimp_resolve_nameprefix "$NAME" "$PREFIX")
 	exitcode=$?
 	case $exitcode in
 		0) NAME=$expanded_name
@@ -232,7 +232,7 @@ This message will be used as the commit merge when the branch is merged into dev
 	echo ""
 	echo "Now, start committing on your feature. When done, use:"
 	echo ""
-	echo "     git flow feature finish $NAME"
+	echo "     git imp feature finish $NAME"
 	echo
 }
 
@@ -247,7 +247,7 @@ cmd_finish() {
 	require_branch "$BRANCH"
 
 	# detect if we're restoring from a merge conflict
-	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE" ]; then
+	if [ -f "$DOT_GIT_DIR/.gitimp/MERGE_BASE" ]; then
 		#
 		# TODO: detect that we're working on the correct branch here!
 		# The user need not necessarily have given the same $NAME twice here
@@ -258,20 +258,20 @@ cmd_finish() {
 		# exit code for "unmerged changes in working tree", which we should
 		# actually be testing for here
 		if git_is_clean_working_tree; then
-			FINISH_BASE=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE")
+			FINISH_BASE=$(cat "$DOT_GIT_DIR/.gitimp/MERGE_BASE")
 
 			# Since the working tree is now clean, either the user did a
 			# succesfull merge manually, or the merge was cancelled.
 			# We detect this using git_is_branch_merged_into()
 			if git_is_branch_merged_into "$BRANCH" "$FINISH_BASE"; then
-				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+				rm -f "$DOT_GIT_DIR/.gitimp/MERGE_BASE"
 				helper_finish_cleanup
 				exit 0
 			else
 				# If the user cancelled the merge and decided to wait until later,
 				# that's fine. But we have to acknowledge this by removing the
 				# MERGE_BASE file and continuing normal execution of the finish
-				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+				rm -f "$DOT_GIT_DIR/.gitimp/MERGE_BASE"
 			fi
 		else
 			echo
@@ -280,7 +280,7 @@ cmd_finish() {
 			echo "    git commit"
 			echo
 			echo "You can then complete the finish by running it again:"
-			echo "    git flow feature finish $NAME"
+			echo "    git imp feature finish $NAME"
 			echo
 			exit 1
 		fi
@@ -305,11 +305,11 @@ cmd_finish() {
 	fi
 
 	# if the user wants to rebase, do that first
-	if ! git flow feature rebase "$NAME" "$DEVELOP_BRANCH"; then
+	if ! git imp feature rebase "$NAME" "$DEVELOP_BRANCH"; then
 		warn "Finish was aborted due to conflicts during rebase."
 		warn "Please finish the rebase manually now."
 		warn "When finished, re-run:"
-		warn "    git flow feature finish '$NAME' '$DEVELOP_BRANCH'"
+		warn "    git imp feature finish '$NAME' '$DEVELOP_BRANCH'"
 		exit 1
 	fi
 
@@ -338,15 +338,15 @@ cmd_finish() {
 	if [ $? -ne 0 ]; then
 		# oops.. we have a merge conflict!
 		# write the given $DEVELOP_BRANCH to a temporary file (we need it later)
-		mkdir -p "$DOT_GIT_DIR/.gitflow"
-		echo "$DEVELOP_BRANCH" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+		mkdir -p "$DOT_GIT_DIR/.gitimp"
+		echo "$DEVELOP_BRANCH" > "$DOT_GIT_DIR/.gitimp/MERGE_BASE"
 		echo
 		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
 		echo "    git commit"
 		echo
 		echo "You can then complete the finish by running it again:"
-		echo "    git flow feature finish $NAME"
+		echo "    git imp feature finish $NAME"
 		echo
 		exit 1
 	fi
@@ -487,7 +487,7 @@ avoid_accidental_cross_branch_action() {
 	local current_branch=$(git_current_branch)
 	if [ "$BRANCH" != "$current_branch" ]; then
 		warn "Trying to pull from '$BRANCH' while currently on branch '$current_branch'."
-		warn "To avoid unintended merges, git-flow aborted."
+		warn "To avoid unintended merges, git-imp aborted."
 		return 1
 	fi
 	return 0
