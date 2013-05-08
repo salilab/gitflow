@@ -9,17 +9,17 @@
 #    http://github.com/nvie/gitflow
 #
 # Copyright 2010 Vincent Driessen. All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
-# 
+#
 #    2. Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY VINCENT DRIESSEN ``AS IS'' AND ANY EXPRESS OR
 # IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -30,7 +30,7 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # The views and conclusions contained in the software and documentation are
 # those of the authors and should not be interpreted as representing official
 # policies, either expressed or implied, of Vincent Driessen.
@@ -48,10 +48,9 @@ parse_args() {
 
 # Default entry when no SUBACTION is given
 cmd_default() {
-	DEFINE_boolean force false 'force setting of gitflow branches, even if already configured' f
-	DEFINE_boolean defaults false 'use default branch naming conventions' d
+	DEFINE_boolean force false 'force setting of gitimp branches, even if already configured' f
 	parse_args "$@"
-	
+
 	if ! git rev-parse --git-dir >/dev/null 2>&1; then
 		git_do init
 	else
@@ -60,8 +59,8 @@ cmd_default() {
 	fi
 
 	# running git flow init on an already initialized repo is fine
-	if gitflow_is_initialized && ! flag force; then
-		warn "Already initialized for gitflow."
+	if gitimp_is_initialized && ! flag force; then
+		warn "Already initialized for gitimp."
 		warn "To force reinitialization, use: git flow init -f"
 		exit 0
 	fi
@@ -69,14 +68,10 @@ cmd_default() {
 	local branch_count
 	local answer
 
-    if flag defaults; then
-        warn "Using default branch names."
-    fi
-
 	# add a master branch if no such branch exists yet
 	local master_branch
-	if gitflow_has_master_configured && ! flag force; then
-		master_branch=$(git config --get gitflow.branch.master)
+	if gitimp_has_master_configured && ! flag force; then
+		master_branch=$(git config --get gitimp.branch.master)
 	else
 		# Two cases are distinguished:
 		# 1. A fresh git repo (without any branches)
@@ -90,7 +85,7 @@ cmd_default() {
 		if [ "$branch_count" -eq 0 ]; then
 			echo "No branches exist yet. Base branches must be created now."
 			should_check_existence=NO
-			default_suggestion=$(git config --get gitflow.branch.master || echo master)
+			default_suggestion=$(git config --get gitimp.branch.master || echo master)
 		else
 			echo
 			echo "Which branch should be used for bringing forth production releases?"
@@ -98,7 +93,7 @@ cmd_default() {
 
 			should_check_existence=YES
 			default_suggestion=
-			for guess in $(git config --get gitflow.branch.master) \
+			for guess in $(git config --get gitimp.branch.master) \
 			             'production' 'main' 'master'; do
 				if git_local_branch_exists "$guess"; then
 					default_suggestion="$guess"
@@ -106,13 +101,9 @@ cmd_default() {
 				fi
 			done
 		fi
-		
+
 		printf "Branch name for production releases: [$default_suggestion] "
-		if noflag defaults; then
-			read answer
-		else
-			printf "\n"
-		fi
+	        printf "\n"
 		master_branch=${answer:-$default_suggestion}
 
 		# check existence in case of an already existing repo
@@ -128,13 +119,13 @@ cmd_default() {
 		fi
 
 		# store the name of the master branch
-		git_do config gitflow.branch.master "$master_branch"
+		git_do config gitimp.branch.master "$master_branch"
 	fi
 
 	# add a develop branch if no such branch exists yet
 	local develop_branch
-	if gitflow_has_develop_configured && ! flag force; then
-		develop_branch=$(git config --get gitflow.branch.develop)
+	if gitimp_has_develop_configured && ! flag force; then
+		develop_branch=$(git config --get gitimp.branch.develop)
 	else
 		# Again, the same two cases as with the master selection are
 		# considered (fresh repo or repo that contains branches)
@@ -143,7 +134,7 @@ cmd_default() {
 		branch_count=$(git_local_branches | grep -v "^${master_branch}\$" | wc -l)
 		if [ "$branch_count" -eq 0 ]; then
 			should_check_existence=NO
-			default_suggestion=$(git config --get gitflow.branch.develop || echo develop)
+			default_suggestion=$(git config --get gitimp.branch.develop || echo develop)
 		else
 			echo
 			echo "Which branch should be used for integration of the \"next release\"?"
@@ -151,19 +142,19 @@ cmd_default() {
 
 			should_check_existence=YES
 			default_suggestion=
-			for guess in $(git config --get gitflow.branch.develop) \
+			for guess in $(git config --get gitimp.branch.develop) \
 			             'develop' 'int' 'integration' 'master'; do
 				if git_local_branch_exists "$guess" && [ "$guess" != "$master_branch" ]; then
 					default_suggestion="$guess"
 					break
 				fi
 			done
-			
+
 			if [ -z $default_suggestion ]; then
 				should_check_existence=NO
-				default_suggestion=$(git config --get gitflow.branch.develop || echo develop)
+				default_suggestion=$(git config --get gitimp.branch.develop || echo develop)
 			fi
-			
+
 		fi
 
 		printf "Branch name for \"next release\" development: [$default_suggestion] "
@@ -185,18 +176,18 @@ cmd_default() {
 		fi
 
 		# store the name of the develop branch
-		git_do config gitflow.branch.develop "$develop_branch"
+		git_do config gitimp.branch.develop "$develop_branch"
 	fi
 
 	# Creation of HEAD
 	# ----------------
 	# We create a HEAD now, if it does not exist yet (in a fresh repo). We need
 	# it to be able to create new branches.
-	local created_gitflow_branch=0
+	local created_gitimp_branch=0
 	if ! git rev-parse --quiet --verify HEAD >/dev/null 2>&1; then
 		git_do symbolic-ref HEAD "refs/heads/$master_branch"
 		git_do commit --allow-empty --quiet -m "Initial commit"
-		created_gitflow_branch=1
+		created_gitimp_branch=1
 	fi
 
 	# Creation of master
@@ -217,24 +208,24 @@ cmd_default() {
 		else
 			git_do branch --no-track "$develop_branch" "$master_branch"
 		fi
-		created_gitflow_branch=1
+		created_gitimp_branch=1
 	fi
 
-	# assert the gitflow repo has been correctly initialized
-	gitflow_is_initialized
+	# assert the gitimp repo has been correctly initialized
+	gitimp_is_initialized
 
 	# switch to develop branch if its newly created
-	if [ $created_gitflow_branch -eq 1 ]; then
+	if [ $created_gitimp_branch -eq 1 ]; then
 		git_do checkout -q "$develop_branch"
 	fi
 
 	# finally, ask the user for naming conventions (branch and tag prefixes)
 	if flag force || \
-	   ! git config --get gitflow.prefix.feature >/dev/null 2>&1 || 
-	   ! git config --get gitflow.prefix.release >/dev/null 2>&1 || 
-	   ! git config --get gitflow.prefix.hotfix >/dev/null 2>&1 || 
-	   ! git config --get gitflow.prefix.support >/dev/null 2>&1 || 
-	   ! git config --get gitflow.prefix.versiontag >/dev/null 2>&1; then
+	   ! git config --get gitimp.prefix.feature >/dev/null 2>&1 ||
+	   ! git config --get gitimp.prefix.release >/dev/null 2>&1 ||
+	   ! git config --get gitimp.prefix.hotfix >/dev/null 2>&1 ||
+	   ! git config --get gitimp.prefix.support >/dev/null 2>&1 ||
+	   ! git config --get gitimp.prefix.versiontag >/dev/null 2>&1; then
 		echo
 		echo "How to name your supporting branch prefixes?"
 	fi
@@ -242,8 +233,8 @@ cmd_default() {
 	local prefix
 
 	# Feature branches
-	if ! git config --get gitflow.prefix.feature >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitflow.prefix.feature || echo feature/)
+	if ! git config --get gitimp.prefix.feature >/dev/null 2>&1 || flag force; then
+		default_suggestion=$(git config --get gitimp.prefix.feature || echo feature/)
 		printf "Feature branches? [$default_suggestion] "
 		if noflag defaults; then
 			read answer
@@ -251,12 +242,12 @@ cmd_default() {
 			printf "\n"
 		fi
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitflow.prefix.feature "$prefix"
+		git_do config gitimp.prefix.feature "$prefix"
 	fi
 
 	# Release branches
-	if ! git config --get gitflow.prefix.release >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitflow.prefix.release || echo release/)
+	if ! git config --get gitimp.prefix.release >/dev/null 2>&1 || flag force; then
+		default_suggestion=$(git config --get gitimp.prefix.release || echo release/)
 		printf "Release branches? [$default_suggestion] "
 		if noflag defaults; then
 			read answer
@@ -264,13 +255,13 @@ cmd_default() {
 			printf "\n"
 		fi
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitflow.prefix.release "$prefix"
+		git_do config gitimp.prefix.release "$prefix"
 	fi
 
 
 	# Hotfix branches
-	if ! git config --get gitflow.prefix.hotfix >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitflow.prefix.hotfix || echo hotfix/)
+	if ! git config --get gitimp.prefix.hotfix >/dev/null 2>&1 || flag force; then
+		default_suggestion=$(git config --get gitimp.prefix.hotfix || echo hotfix/)
 		printf "Hotfix branches? [$default_suggestion] "
 		if noflag defaults; then
 			read answer
@@ -278,13 +269,13 @@ cmd_default() {
 			printf "\n"
 		fi
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitflow.prefix.hotfix "$prefix"
+		git_do config gitimp.prefix.hotfix "$prefix"
 	fi
 
 
 	# Support branches
-	if ! git config --get gitflow.prefix.support >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitflow.prefix.support || echo support/)
+	if ! git config --get gitimp.prefix.support >/dev/null 2>&1 || flag force; then
+		default_suggestion=$(git config --get gitimp.prefix.support || echo support/)
 		printf "Support branches? [$default_suggestion] "
 		if noflag defaults; then
 			read answer
@@ -292,13 +283,13 @@ cmd_default() {
 			printf "\n"
 		fi
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitflow.prefix.support "$prefix"
+		git_do config gitimp.prefix.support "$prefix"
 	fi
 
 
 	# Version tag prefix
-	if ! git config --get gitflow.prefix.versiontag >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitflow.prefix.versiontag || echo "")
+	if ! git config --get gitimp.prefix.versiontag >/dev/null 2>&1 || flag force; then
+		default_suggestion=$(git config --get gitimp.prefix.versiontag || echo "")
 		printf "Version tag prefix? [$default_suggestion] "
 		if noflag defaults; then
 			read answer
@@ -306,7 +297,7 @@ cmd_default() {
 			printf "\n"
 		fi
 		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitflow.prefix.versiontag "$prefix"
+		git_do config gitimp.prefix.versiontag "$prefix"
 	fi
 
 
