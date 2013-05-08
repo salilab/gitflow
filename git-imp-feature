@@ -315,12 +315,25 @@ cmd_finish() {
 
 	# merge into BASE
         message=`cat README.md`
-        git rm README.md
-        git commit -- README.md -m "remove README.md"
+        if ! git_do rm README.md; then
+                warn "Is the README.md file missing?"
+		exit 1
+	fi
+        if ! git_do commit  -m "remove README.md" --no-verify -- README.md; then
+                warn "Failed to remove README.md"
+		exit 1
 	git_do checkout "$DEVELOP_BRANCH"
-        git_do merge --squash "$BRANCH" -m "$message"
-	git_do commit
-	git_do merge "$BRANCH"
+        if ! git_do merge --squash "$BRANCH" -m "$message"; then
+                warn "Failed to merge in to develop."
+                exit 1
+        fi
+	if ! git_do commit -m "$message"; then
+                warn "Unable to merge squashed commit into develop."
+                exit 1
+        fi
+        git_do branch -D "$BRANCH"
+        git_do push origin :"$BRANCH" >& /dev/null
+	#git_do merge "$BRANCH"
 
 	if [ $? -ne 0 ]; then
 		# oops.. we have a merge conflict!
