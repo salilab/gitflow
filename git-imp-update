@@ -36,25 +36,24 @@
 # policies, either expressed or implied, of Vincent Driessen.
 #
 
+init() {
+  require_git_repo
+  require_gitimp_initialized
+  gitimp_load_settings
+  PREFIX=$(git config --get gitimp.prefix.feature)
+}
+
+
 usage() {
 	echo "usage: git imp update"
 }
 
-parse_args() {
-	# parse options
-	FLAGS "$@" || exit $?
-	eval set -- "${FLAGS_ARGV}"
-}
-
 # Default entry when no SUBACTION is given
 cmd_default() {
-	DEFINE_boolean force false 'force setting of gitimp branches, even if already configured' f
-	parse_args "$@"
-
         git_do fetch --all
         git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
-        git_do git pull --all
-        git_do git submodule update
+        git_do pull --all
+        git_do submodule update
         ./setup_git.py > /dev/null
 }
 
