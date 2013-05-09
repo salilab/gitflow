@@ -52,7 +52,7 @@ cmd_default() {
 	parse_args "$@"
 
         git_do fetch --all
-        git_do diff develop origin/develop -- ChangeLog.md
+        git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
         git_do git pull --all
         git_do git submodule update
         ./setup_git.py > /dev/null
