@@ -50,11 +50,15 @@ usage() {
 
 # Default entry when no SUBACTION is given
 cmd_default() {
+        require_clean_working_tree
+        branch=`git rev-parse --abbrev-ref HEAD`
         git_do fetch --all
         git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
+        git_do checkout develop
         git_do pull --all
-        git_do submodule update
         ./setup_git.py > /dev/null
+        git_do checkout $branch
+        git_do submodule update
 }
 
 cmd_help() {
