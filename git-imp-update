@@ -52,13 +52,23 @@ usage() {
 cmd_default() {
         require_clean_working_tree
         branch=`git rev-parse --abbrev-ref HEAD`
-        git_do fetch --all
+        print "Fetching changes from origin"
+        if ! git_do fetch --all; then
+           die "Could not get changes from origin"
+        fi
         git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
         git_do checkout develop
-        git_do pull --all
+        print "Merging in changes"
+        if ! git_do pull -q --recurse-submodules --all; then
+          die "Error merging in changes. Please clean things up and re-run git imp update."
+        fi
+        print "Running setup_git.py"
         ./setup_git.py > /dev/null
         git_do checkout $branch
-        git_do submodule update
+        print "Updating submodules"
+        if ! git_do submodule update; then
+          die "Unable to update submodules."
+        fi
 }
 
 cmd_help() {
