@@ -245,6 +245,14 @@ cmd_finish() {
 	# sanity checks
 	require_branch "$BRANCH"
 
+        files=`git_do diff --name-only develop`
+        if ./tools/check-standards.py $files; then
+             echo "Standards passed"
+        else
+             echo "Standards problems found, fix them and try again."
+             exit 1
+        fi
+
 	# detect if we're restoring from a merge conflict
 	if [ -f "$DOT_GIT_DIR/.gitimp/MERGE_BASE" ]; then
 		#
