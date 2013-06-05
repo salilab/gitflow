@@ -51,13 +51,6 @@ cmd_default() {
 	DEFINE_boolean force false 'force setting of gitimp branches, even if already configured' f
 	parse_args "$@"
 
-	if ! git rev-parse --git-dir >/dev/null 2>&1; then
-		git_do init
-	else
-		# assure that we are not working in a repo with local changes
-		git_repo_is_headless || require_clean_working_tree
-	fi
-
 	# running git imp init on an already initialized repo is fine
 	if gitimp_is_initialized && ! flag force; then
 		warn "Already initialized for gitimp."
@@ -65,219 +58,24 @@ cmd_default() {
 		exit 0
 	fi
 
-	local branch_count
-	local answer
-
 	# add a master branch if no such branch exists yet
-	local master_branch
-	if gitimp_has_master_configured && ! flag force; then
-		master_branch=$(git config --get gitimp.branch.master)
-	else
-		# Two cases are distinguished:
-		# 1. A fresh git repo (without any branches)
-		#    We will create a new master/develop branch for the user
-		# 2. Some branches do already exist
-		#    We will disallow creation of new master/develop branches and
-		#    rather allow to use existing branches for git-imp.
-		local default_suggestion
-		local should_check_existence
-		branch_count=$(git_local_branches | wc -l)
-		if [ "$branch_count" -eq 0 ]; then
-			echo "No branches exist yet. Base branches must be created now."
-			should_check_existence=NO
-			default_suggestion=$(git config --get gitimp.branch.master || echo master)
-		else
-			echo
-			echo "Which branch should be used for bringing forth production releases?"
-			git_local_branches | sed 's/^.*$/   - &/g'
-
-			should_check_existence=YES
-			default_suggestion=
-			for guess in $(git config --get gitimp.branch.master) \
-			             'production' 'main' 'master'; do
-				if git_local_branch_exists "$guess"; then
-					default_suggestion="$guess"
-					break
-				fi
-			done
-		fi
-
-		printf "Branch name for production releases: [$default_suggestion] "
-	        printf "\n"
-		master_branch=${answer:-$default_suggestion}
-
-		# check existence in case of an already existing repo
-		if [ "$should_check_existence" = "YES" ]; then
-			# if no local branch exists and a remote branch of the same
-			# name exists, checkout that branch and use it for master
-			if ! git_local_branch_exists "$master_branch" && \
-				git_remote_branch_exists "origin/$master_branch"; then
-				git_do branch "$master_branch" "origin/$master_branch" >/dev/null 2>&1
-			elif ! git_local_branch_exists "$master_branch"; then
-				die "Local branch '$master_branch' does not exist."
-			fi
-		fi
-
-		# store the name of the master branch
-		git_do config gitimp.branch.master "$master_branch"
-	fi
-
-	# add a develop branch if no such branch exists yet
-	local develop_branch
-	if gitimp_has_develop_configured && ! flag force; then
-		develop_branch=$(git config --get gitimp.branch.develop)
-	else
-		# Again, the same two cases as with the master selection are
-		# considered (fresh repo or repo that contains branches)
-		local default_suggestion
-		local should_check_existence
-		branch_count=$(git_local_branches | grep -v "^${master_branch}\$" | wc -l)
-		if [ "$branch_count" -eq 0 ]; then
-			should_check_existence=NO
-			default_suggestion=$(git config --get gitimp.branch.develop || echo develop)
-		else
-			echo
-			echo "Which branch should be used for integration of the \"next release\"?"
-			git_local_branches | grep -v "^${master_branch}\$" | sed 's/^.*$/   - &/g'
-
-			should_check_existence=YES
-			default_suggestion=
-			for guess in $(git config --get gitimp.branch.develop) \
-			             'develop' 'int' 'integration' 'master'; do
-				if git_local_branch_exists "$guess" && [ "$guess" != "$master_branch" ]; then
-					default_suggestion="$guess"
-					break
-				fi
-			done
-
-			if [ -z $default_suggestion ]; then
-				should_check_existence=NO
-				default_suggestion=$(git config --get gitimp.branch.develop || echo develop)
-			fi
-
-		fi
-
-		printf "Branch name for \"next release\" development: [$default_suggestion] "
-		printf "\n"
-		develop_branch=${answer:-$default_suggestion}
-
-		if [ "$master_branch" = "$develop_branch" ]; then
-			die "Production and integration branches should differ."
-		fi
-
-		# check existence in case of an already existing repo
-		if [ "$should_check_existence" = "YES" ]; then
-			git_local_branch_exists "$develop_branch" || \
-				die "Local branch '$develop_branch' does not exist."
-		fi
-
-		# store the name of the develop branch
-		git_do config gitimp.branch.develop "$develop_branch"
-	fi
-
-	# Creation of HEAD
-	# ----------------
-	# We create a HEAD now, if it does not exist yet (in a fresh repo). We need
-	# it to be able to create new branches.
-	local created_gitimp_branch=0
-	if ! git rev-parse --quiet --verify HEAD >/dev/null 2>&1; then
-		git_do symbolic-ref HEAD "refs/heads/$master_branch"
-		git_do commit --allow-empty --quiet -m "Initial commit"
-		created_gitimp_branch=1
-	fi
-
-	# Creation of master
-	# ------------------
-	# At this point, there always is a master branch: either it existed already
-	# (and was picked interactively as the production branch) or it has just
-	# been created in a fresh repo
-
-	# Creation of develop
-	# -------------------
-	# The develop branch possibly does not exist yet.  This is the case when,
-	# in a git init'ed repo with one or more commits, master was picked as the
-	# default production branch and develop was "created".  We should create
-	# the develop branch now in that case (we base it on master, of course)
-	if ! git_local_branch_exists "$develop_branch"; then
-		if git_remote_branch_exists "origin/$develop_branch"; then
-			git_do branch "$develop_branch" "origin/$develop_branch" >/dev/null 2>&1
-		else
-			git_do branch --no-track "$develop_branch" "$master_branch"
-		fi
-		created_gitimp_branch=1
-	fi
+	if ! git_local_branch_exists "master"; then
+              echo "Creating master branch"
+              git_do branch "master" "origin/master" >/dev/null 2>&1
+              git_do checkout -q develop
+        fi
 
 	# assert the gitimp repo has been correctly initialized
 	gitimp_is_initialized
 
-	# switch to develop branch if its newly created
-	if [ $created_gitimp_branch -eq 1 ]; then
-		git_do checkout -q "$develop_branch"
-	fi
+        git_do config gitimp.branch.develop "develop"
+        git_do config gitimp.branch.master "master"
+        git_do config gitimp.prefix.feature "feature/"
+        git_do config gitimp.prefix.release "release/"
+        git_do config gitimp.prefix.hotfix "hotfix/"
+        git_do config gitimp.prefix.support "support/"
+        git_do config gitimp.prefix.versiontag ""
 
-	# finally, ask the user for naming conventions (branch and tag prefixes)
-	if flag force || \
-	   ! git config --get gitimp.prefix.feature >/dev/null 2>&1 ||
-	   ! git config --get gitimp.prefix.release >/dev/null 2>&1 ||
-	   ! git config --get gitimp.prefix.hotfix >/dev/null 2>&1 ||
-	   ! git config --get gitimp.prefix.support >/dev/null 2>&1 ||
-	   ! git config --get gitimp.prefix.versiontag >/dev/null 2>&1; then
-		echo
-		echo "How to name your supporting branch prefixes?"
-	fi
-
-	local prefix
-
-	# Feature branches
-	if ! git config --get gitimp.prefix.feature >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitimp.prefix.feature || echo feature/)
-		printf "Feature branches? [$default_suggestion] "
-		printf "\n"
-		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitimp.prefix.feature "$prefix"
-	fi
-
-	# Release branches
-	if ! git config --get gitimp.prefix.release >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitimp.prefix.release || echo release/)
-		printf "Release branches? [$default_suggestion] "
-		printf "\n"
-		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitimp.prefix.release "$prefix"
-	fi
-
-
-	# Hotfix branches
-	if ! git config --get gitimp.prefix.hotfix >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitimp.prefix.hotfix || echo hotfix/)
-		printf "Hotfix branches? [$default_suggestion] "
-		printf "\n"
-		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitimp.prefix.hotfix "$prefix"
-	fi
-
-
-	# Support branches
-	if ! git config --get gitimp.prefix.support >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitimp.prefix.support || echo support/)
-		printf "Support branches? [$default_suggestion] "
-		printf "\n"
-		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitimp.prefix.support "$prefix"
-	fi
-
-
-	# Version tag prefix
-	if ! git config --get gitimp.prefix.versiontag >/dev/null 2>&1 || flag force; then
-		default_suggestion=$(git config --get gitimp.prefix.versiontag || echo "")
-		printf "Version tag prefix? [$default_suggestion] "
-		printf "\n"
-		[ "$answer" = "-" ] && prefix= || prefix=${answer:-$default_suggestion}
-		git_do config gitimp.prefix.versiontag "$prefix"
-	fi
-
-
-	# TODO: what to do with origin?
 }
 
 cmd_help() {
