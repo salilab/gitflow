@@ -54,7 +54,7 @@ cmd_default() {
         branch=`git rev-parse --abbrev-ref HEAD`
         echo "Fetching changes from origin"
         git_do checkout develop >& /dev/null
-        if ! git_do fetch --all; then
+        if ! git_do fetch --all > /dev/null; then
            die "Could not get changes from origin"
         fi
         git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
@@ -69,6 +69,16 @@ cmd_default() {
         if ! git_do submodule update; then
           die "Unable to update submodules."
         fi
+
+        echo "Updating local modules and applications"
+        for m in modules/* applications/*; do
+          if [ -e $m/.git ]; then
+            echo "Updating" $m
+            pushd $m > /dev/null
+            git pull --rebase --all
+            popd > /dev/null
+          fi
+        done
 }
 
 cmd_help() {
