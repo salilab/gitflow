@@ -59,8 +59,11 @@ cmd_default() {
         fi
         git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
         echo "Merging in changes"
-        if ! git_do pull -q --recurse-submodules --all; then
+        if ! git_do pull -q --all; then
           die "Error merging in changes. Please clean things up and re-run git imp update."
+        fi
+        if ! git_do submodule foreach git pull --all; then
+          die "Error merging in changes for submodules. Please clean things up and re-run git imp update."
         fi
         echo "Running setup_git.py"
         ./setup_git.py > /dev/null
