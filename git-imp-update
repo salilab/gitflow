@@ -57,7 +57,7 @@ cmd_default() {
         if ! git_do fetch --all > /dev/null; then
            die "Could not get changes from origin"
         fi
-        git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"
+        changes=`git_do diff develop origin/develop -- ChangeLog.md | grep "^\+[^\+]"`
         echo "Merging in changes"
         if ! git_do pull -q --all; then
           die "Error merging in changes. Please clean things up and re-run git imp update."
@@ -82,6 +82,7 @@ cmd_default() {
             popd > /dev/null
           fi
         done
+        echo $changes
 }
 
 cmd_help() {
