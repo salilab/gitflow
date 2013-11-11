@@ -1,3 +1,4 @@
+#! /usr/bin/env bash
 #
 # git-flow -- A collection of Git extensions to provide high-level
 # repository operations for Vincent Driessen's branching model.
@@ -82,7 +83,7 @@ cmd_default() {
             popd > /dev/null
           fi
         done
-        echo $changes
+        echo "$changes"
 }
 
 cmd_help() {
