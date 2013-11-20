@@ -54,7 +54,6 @@ cmd_default() {
         require_clean_working_tree
         branch=`git rev-parse --abbrev-ref HEAD`
         echo "Fetching changes from origin"
-        git_do checkout develop >& /dev/null
         if ! git_do fetch --all > /dev/null; then
            die "Could not get changes from origin"
         fi
@@ -68,13 +67,11 @@ cmd_default() {
         fi
         echo "Running setup_git.py"
         ./setup_git.py > /dev/null
-        git_do checkout $branch >& /dev/null
         echo "Updating submodules"
         if ! git_do submodule update; then
           die "Unable to update submodules."
         fi
 
-        echo "Updating local modules and applications"
         for m in modules/* applications/*; do
           if [ -e $m/.git ]; then
             echo "Updating" $m
@@ -83,7 +80,9 @@ cmd_default() {
             popd > /dev/null
           fi
         done
-        echo "$changes"
+        if ! [ -z "$changes" ]; then
+          echo "$changes"
+        fi
 }
 
 cmd_help() {
