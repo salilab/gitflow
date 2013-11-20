@@ -62,7 +62,10 @@ cmd_default() {
         if ! git_do pull -q --all; then
           die "Error merging in changes. Please clean things up and re-run git imp update."
         fi
-        if ! git_do submodule update; then
+        if ! git_do submodule update --recursive --init; then
+          die "Initializing submodules. Please clean things up and re-run git imp update."
+        fi
+        if ! git_do submodule update --recursive; then
           die "Error merging in changes for submodules. Please clean things up and re-run git imp update."
         fi
         echo "Running setup_git.py"
